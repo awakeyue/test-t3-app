@@ -10,11 +10,17 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+}
+
+model Todo {
     id        Int      @id @default(autoincrement())
-    name      String
+    content   String
+    priority  Priority @default(LOW)
+    completed Boolean  @default(false)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-
-    @@index([name])
 }
