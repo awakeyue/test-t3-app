@@ -6,8 +6,8 @@ import type { TodoType } from "@/schemas/todo";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
-import { deleteTodo, updateTodo } from "@/server/todo-actions";
-import { mutate } from "swr";
+import { deleteTodo, updateTodo } from "@/actions/todos";
+import { useSWRConfig } from "swr";
 import PriorityTag from "./PriorityTag";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
@@ -22,23 +22,56 @@ export function TodoItem({
   completed,
   createdAt,
 }: TodoType) {
+  const { mutate } = useSWRConfig();
+
   const handleCheckedChange = async (checked: boolean) => {
-    await updateTodo({ id, completed: checked });
-    await mutate("todos");
+    // 乐观更新：立即更新UI
+    void mutate<TodoType[]>(
+      "todos",
+      (todos) =>
+        todos?.map((todo) =>
+          todo.id === id ? { ...todo, completed: checked } : todo,
+        ) ?? [],
+      { revalidate: false },
+    );
+
+    try {
+      // 发送请求到服务器
+      await updateTodo({ id, completed: checked });
+      // 成功后重新验证数据
+      void mutate("todos");
+    } catch (error) {
+      // 如果失败，显示错误并重新获取数据
+      console.error("Failed to update todo:", error);
+      void mutate("todos");
+    }
+  };
+
+  const handleDelete = async () => {
+    // 乐观更新：立即从列表中移除
+    void mutate<TodoType[]>(
+      "todos",
+      (todos) => todos?.filter((todo) => todo.id !== id) ?? [],
+      { revalidate: false },
+    );
+
+    try {
+      // 发送删除请求到服务器
+      await deleteTodo(id);
+      // 成功后重新验证数据
+      void mutate("todos");
+    } catch (error) {
+      // 如果失败，显示错误并重新获取数据
+      console.error("Failed to delete todo:", error);
+      void mutate("todos");
+    }
   };
 
   const renderDelBtn = () => {
     return (
       <div className="absolute right-1 bottom-1">
-        <Button
-          variant="ghost"
-          size={"sm"}
-          onClick={() => {
-            void deleteTodo(id);
-            void mutate("todos");
-          }}
-        >
-          <Trash2 className="h-2 w-2" />
+        <Button variant="ghost" size={"sm"} onClick={() => void handleDelete()}>
+          <Trash2 className="text-muted-foreground h-2 w-2" />
         </Button>
       </div>
     );
@@ -51,7 +84,11 @@ export function TodoItem({
           <Checkbox
             checked={completed}
             className="mt-1"
-            onCheckedChange={handleCheckedChange}
+            onCheckedChange={(checked) => {
+              if (typeof checked === "boolean") {
+                void handleCheckedChange(checked);
+              }
+            }}
           />
 
           <div className="min-w-0 flex-1">

@@ -1,5 +1,7 @@
+import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import ThemeSwitch from "@/components/theme/ThemeSwitch";
+import SignOutButton from "@/components/user/SignOut";
 import "@/styles/globals.css";
 
 import { type Metadata } from "next";
@@ -23,7 +25,7 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ThemeSwitch className="absolute top-4 right-4" />
+          <Header className="fixed top-1 right-1" />
           {children}
         </ThemeProvider>
       </body>

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { addTodo } from "@/server/todo-actions";
+import { addTodo } from "@/actions/todos";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -12,18 +12,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mutate } from "swr";
+import { useSWRConfig } from "swr";
+import useSWRMutation from "swr/mutation";
 import PriorityTag from "./PriorityTag";
 import { CornerDownLeft } from "lucide-react";
 
 export default function TodoInput() {
+  const { mutate } = useSWRConfig();
   const [content, setContent] = useState("");
   const [priority, setPriority] = useState("LOW");
+  const { trigger, isMutating } = useSWRMutation(
+    "todos/create",
+    (_key, { arg }: { arg: { content: string; priority: string } }) =>
+      addTodo(arg),
+  );
 
-  const createTodo = async () => {
-    if (content.trim()) {
+  async function createTodo() {
+    if (content.trim() && !isMutating) {
       try {
-        await addTodo({ content, priority });
+        await trigger({ content, priority });
         setContent("");
         await mutate("todos");
       } catch (error) {
@@ -31,7 +38,7 @@ export default function TodoInput() {
         // 这里可以添加错误提示
       }
     }
-  };
+  }
 
   return (
     <Card>
@@ -42,14 +49,16 @@ export default function TodoInput() {
             onChange={(e) => setContent(e.target.value)}
             placeholder="请输入待办事项"
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !isMutating) {
                 void createTodo();
               }
             }}
+            disabled={isMutating}
           />
           <Select
             value={priority}
             onValueChange={(value) => setPriority(value)}
+            disabled={isMutating}
           >
             <SelectTrigger>
               <SelectValue placeholder="priority" />
@@ -66,8 +75,14 @@ export default function TodoInput() {
               </SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => void createTodo()}>
-            <CornerDownLeft />
+          <Button onClick={() => void createTodo()} disabled={isMutating}>
+            {isMutating ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-t-2 border-white" />
+            ) : (
+              <div className="h-4 w-4">
+                <CornerDownLeft />
+              </div>
+            )}
           </Button>
         </div>
       </CardContent>

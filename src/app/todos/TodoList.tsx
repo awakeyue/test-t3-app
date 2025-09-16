@@ -1,55 +1,47 @@
 "use client";
 
-import { getTodos } from "@/server/todo-actions";
-import { TodoItem } from "./TodoItem";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
-import useSWR from "swr";
 import type { TodoType } from "@/schemas/todo";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { Coffee } from "lucide-react";
+import { TodoItem } from "./TodoItem";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 type TabsType = "all" | "active" | "completed";
-export default function TodoList() {
-  const [parent] = useAutoAnimate();
-  const [tab, setTab] = useState<TabsType>("all");
-  const { data: todos, error } = useSWR<TodoType[], Error>("todos", () =>
-    getTodos(),
-  );
 
+export default function TodoList({
+  todos,
+  tab,
+}: {
+  todos: TodoType[] | undefined;
+  tab: TabsType;
+}) {
+  const [parent] = useAutoAnimate();
   const filterTodos = todos?.filter((todo) => {
     if (tab === "all") return true;
     if (tab === "active") return !todo.completed;
     if (tab === "completed") return todo.completed;
   });
 
-  if (error) return <div>Failed to load todos</div>;
   return (
-    <div>
-      <Tabs
-        value={tab}
-        onValueChange={(value) => setTab(value as TabsType)}
-        className="mb-4 w-[400px]"
-      >
-        <TabsList>
-          <TabsTrigger value="all" className="text-xs">
-            全部
-          </TabsTrigger>
-          <TabsTrigger value="active" className="text-xs">
-            未完成
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="text-xs">
-            已完成
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-      <ScrollArea>
-        <div className="flex flex-col gap-2" ref={parent}>
-          {filterTodos?.map((todo) => (
-            <TodoItem key={todo.id + tab} {...todo} />
-          ))}
-        </div>
-      </ScrollArea>
+    <div className="flex flex-col gap-2" ref={parent}>
+      {filterTodos?.map((todo) => (
+        <TodoItem key={todo.id + tab} {...todo} />
+      ))}
+      {filterTodos?.length === 0 && <Empty tab={tab} />}
+    </div>
+  );
+}
+
+function Empty({ tab }: { tab: TabsType }) {
+  const text =
+    tab === "active"
+      ? "没有未完成任务 ~"
+      : tab === "completed"
+        ? "没有已完成任务 ~"
+        : "没有任务 ~";
+  return (
+    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-1">
+      <Coffee size={32} />
+      <div className="text-center text-xs">{text}</div>
     </div>
   );
 }

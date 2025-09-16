@@ -6,7 +6,7 @@ import {
   type TodoType,
 } from "@/schemas/todo";
 import { revalidatePath } from "next/cache";
-import { db } from "./db";
+import { db } from "@/server/db";
 
 /* ---------------- 新增 ---------------- */
 const handleError = (e: unknown, msg: string) => {
