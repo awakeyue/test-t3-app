@@ -56,3 +56,20 @@ export async function signOut() {
   revalidatePath("/", "layout");
   redirect("/login");
 }
+
+export async function signInWithOAuth(provider: "google" | "github") {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: process.env.BASE_URL + "/auth/callback",
+    },
+  });
+  if (error) {
+    throw error;
+  }
+
+  if (data.url) {
+    redirect(data.url); // use the redirect API for your server framework
+  }
+}
